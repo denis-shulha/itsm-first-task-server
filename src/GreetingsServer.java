@@ -1,6 +1,5 @@
 
 import java.io.*;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -19,9 +18,9 @@ public class GreetingsServer {
         Runnable serverTask = () -> {
             try {
                 int port = 5678;
-                InetAddress addr = InetAddress.getByName("192.168.5.1");
-                ServerSocket serverSocket = new ServerSocket(port, 0, addr);
+                ServerSocket serverSocket = new ServerSocket(port);
                 while (true) {
+                    System.out.println("Waiting for Client message...");
                     Socket clientSocket = serverSocket.accept();
                     clientProcessingPool.submit(new ClientTask(clientSocket));
                 }
@@ -48,25 +47,32 @@ public class GreetingsServer {
                 InputStreamReader isr = new InputStreamReader(is);
                 BufferedReader br = new BufferedReader(isr);
                 String message = br.readLine();
+                System.out.println("got message: " + message);
 
                 ClientMessage clientMessage = new ClientMessage();
                 clientMessage.parseFromJsonString(message);
                 TimeUnit.SECONDS.sleep(1);
                 System.out.println("message from " + clientMessage.getName() + ": " + clientMessage.getMessage());
 
-                String returnMessage = "{ \"message\" : \"Hello," + clientMessage.getName() + "!\" }";
+                String returnMessage = "{ \"message\" : \"Hello," + clientMessage.getName() + "!\" }\n";
 
                 OutputStream os = clientSocket.getOutputStream();
                 OutputStreamWriter osw = new OutputStreamWriter(os);
                 BufferedWriter bw = new BufferedWriter(osw);
                 bw.write(returnMessage);
                 bw.flush();
-
-                clientSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
+            }
+            finally {
+                try {
+                    clientSocket.close();
+                }
+                catch(Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
